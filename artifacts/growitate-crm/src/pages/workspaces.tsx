@@ -15,7 +15,7 @@ export default function Workspaces() {
 
   // If no workspaces returned from API, fallback to default ones as requested
   const displayWorkspaces = workspaces?.length ? workspaces : [
-    { id: 1, name: "Growitate CRM", slug: "growitate", description: "Marketing & Lead Management", clientCount: 12 },
+    { id: 1, name: "Kotran CRM", slug: "growitate", description: "Marketing & Lead Management", clientCount: 12 },
     { id: 2, name: "DeploidX CRM", slug: "deploidx", description: "DevOps & Hosting Clients", clientCount: 8 }
   ];
 
@@ -38,7 +38,7 @@ export default function Workspaces() {
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2 text-primary font-display font-bold text-xl">
             <Building2 className="w-6 h-6" />
-            <span>Growitate</span>
+            <span>Kotran</span>
           </div>
           <div className="text-sm font-medium text-muted-foreground">
             {user?.email}

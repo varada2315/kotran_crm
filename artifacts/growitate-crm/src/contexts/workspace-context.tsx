@@ -13,7 +13,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   
   useEffect(() => {
-    const saved = localStorage.getItem("growitate_workspace");
+    const saved = localStorage.getItem("kotran_workspace");
     if (saved) {
       try {
         setActiveWorkspace(JSON.parse(saved));
@@ -25,7 +25,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const setWorkspace = (workspace: Workspace) => {
     setActiveWorkspace(workspace);
-    localStorage.setItem("growitate_workspace", JSON.stringify(workspace));
+    localStorage.setItem("kotran_workspace", JSON.stringify(workspace));
   };
 
   return (

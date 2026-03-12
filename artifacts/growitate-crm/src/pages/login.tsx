@@ -66,7 +66,7 @@ export default function Login() {
               <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/30">
                 <Building2 className="w-8 h-8 text-primary-foreground" />
               </div>
-              Growitate
+              Kotran
             </div>
           </div>
 

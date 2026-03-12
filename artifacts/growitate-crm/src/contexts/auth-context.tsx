@@ -14,7 +14,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("growitate_token"));
+  const [token, setToken] = useState<string | null>(localStorage.getItem("kotran_token"));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,14 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const login = (newToken: string, newUser: User) => {
-    localStorage.setItem("growitate_token", newToken);
+    localStorage.setItem("kotran_token", newToken);
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
-    localStorage.removeItem("growitate_token");
-    localStorage.removeItem("growitate_workspace_id");
+    localStorage.removeItem("kotran_token");
+    localStorage.removeItem("kotran_workspace_id");
     setToken(null);
     setUser(null);
     window.location.href = import.meta.env.BASE_URL + "login";

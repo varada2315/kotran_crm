@@ -21,7 +21,7 @@ import { DashboardLayout } from "./components/layout/dashboard-layout";
 // Automatically injects the JWT token from localStorage into all /api calls
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
-  const token = localStorage.getItem("growitate_token");
+  const token = localStorage.getItem("kotran_token");
   const [resource, config] = args;
   
   if (token && typeof resource === "string" && resource.startsWith("/api")) {

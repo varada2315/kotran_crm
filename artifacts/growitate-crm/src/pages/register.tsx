@@ -66,7 +66,7 @@ export default function Register() {
               <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/30">
                 <Building2 className="w-8 h-8 text-primary-foreground" />
               </div>
-              Growitate
+              Kotran
             </div>
           </div>
 
@@ -74,7 +74,7 @@ export default function Register() {
             <CardHeader className="space-y-2 pb-6">
               <CardTitle className="text-2xl text-center">Create an account</CardTitle>
               <CardDescription className="text-center text-base">
-                Join Growitate CRM to manage your clients
+                Join Kotran CRM to manage your clients
               </CardDescription>
             </CardHeader>
             <CardContent>
