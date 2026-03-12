@@ -1,0 +1,249 @@
+Build a modern SaaS-style CRM web application with a UI similar to Privyr CRM.
+
+Tech Stack:
+- Frontend: React + Vite
+- Backend: Node.js + Express
+- Database: PostgreSQL (or SQLite for development)
+- Auth: JWT authentication
+- Styling: TailwindCSS
+- Icons: Lucide React
+- State Management: React Context
+- Deployment ready
+
+The application is called "Growitate CRM Platform".
+
+IMPORTANT FEATURE:
+After login, the user must choose between two separate CRM workspaces:
+1. Growitate CRM
+2. DeploidX CRM
+
+Each workspace should have completely separate data:
+- clients
+- notes
+- activities
+- pipelines
+- analytics
+
+So the database must support a field called:
+workspace_id
+
+------------------------------------------------
+
+AUTHENTICATION FLOW
+
+Pages:
+1. Login Page
+2. Register Page
+3. Workspace Selector Page
+
+After login:
+Show two cards:
+
+Card 1:
+Growitate CRM
+Description: Marketing & Lead Management
+
+Card 2:
+DeploidX CRM
+Description: DevOps & Hosting Clients
+
+When the user selects a workspace,
+load the CRM dashboard for that workspace.
+
+------------------------------------------------
+
+MAIN CRM UI LAYOUT
+
+Top Navbar:
+Logo
+Clients
+Content
+Activities
+Team
+Analytics
+Automations
+User profile icon
+
+Left side navigation optional.
+
+------------------------------------------------
+
+CLIENTS PAGE
+
+Replicate the structure shown in the screenshots.
+
+Header:
+Clients
+
+Tabs:
+- All Clients
+- Uncontacted
+- Follow Ups
+- Recently Viewed Content
+
+Search bar:
+Search Clients
+
+Filters button
+
+Right side button:
++ Add New Client
+
+Client table columns:
+
+Checkbox
+Name
+Notes
+Phone Number
+Email
+
+Clicking a client opens Client Detail Page.
+
+------------------------------------------------
+
+ADD CLIENT MODAL
+
+Fields:
+
+Client Name *
+Display Name
+Mobile Number
+WhatsApp Number
+Email Address
+
+Save button.
+
+------------------------------------------------
+
+CLIENT DETAIL PAGE
+
+Sections similar to the screenshot:
+
+Left card:
+
+Client Info
+
+Display Name
+Mobile Number
+WhatsApp Number
+Email Address
+Lead Stage (Dropdown)
+Opportunity Size
+Notes
+Groups
+
+Right side panels:
+
+Sequences
++ Add to Sequence
+
+Timeline
++ Add Activity
+
+Activities examples:
+- Client added
+- Call logged
+- Note added
+- Follow up scheduled
+
+------------------------------------------------
+
+ACTIVITIES MODULE
+
+Allow logging:
+
+Call
+Meeting
+Note
+Follow Up
+Task
+
+Timeline must show chronological order.
+
+------------------------------------------------
+
+DATABASE TABLES
+
+users
+id
+name
+email
+password
+
+workspaces
+id
+name (Growitate or DeploidX)
+
+clients
+id
+workspace_id
+client_name
+display_name
+phone
+whatsapp
+email
+notes
+lead_stage
+opportunity_size
+
+activities
+id
+client_id
+workspace_id
+type
+description
+date
+
+------------------------------------------------
+
+UI DESIGN
+
+Theme:
+White + light gray background
+
+Accent color:
+#7C3AED (purple gradient)
+
+Cards:
+rounded-xl
+shadow-md
+
+Buttons:
+rounded-lg
+
+Client table styled similar to modern CRM dashboards.
+
+------------------------------------------------
+
+EXTRA FEATURES
+
+Add these optional features:
+
+Lead stage pipeline
+Client groups
+Activity reminders
+WhatsApp quick launch button
+Analytics dashboard with charts
+
+------------------------------------------------
+
+FOLDER STRUCTURE
+
+/client
+  /components
+  /pages
+  /context
+  /services
+
+/server
+  routes
+  controllers
+  models
+  middleware
+
+------------------------------------------------
+
+Make the UI look premium like a SaaS CRM dashboard.
+Use reusable components and clean layout.
+
+Ensure it works smoothly on desktop.

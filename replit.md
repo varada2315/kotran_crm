@@ -1,8 +1,8 @@
-# Workspace
+# Growitate CRM Platform
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+A full-stack SaaS CRM web application with dual-workspace support. Built with React + Vite frontend and Express backend, using PostgreSQL for data persistence.
 
 ## Stack
 
@@ -10,87 +10,96 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
+- **Frontend**: React + Vite + TailwindCSS + ShadCN UI
+- **Backend**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
+- **Auth**: JWT (jsonwebtoken + bcryptjs)
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Charts**: Recharts
+- **Forms**: react-hook-form + @hookform/resolvers
+- **Animations**: framer-motion
+
+## Architecture
+
+### Auth Flow
+1. Login/Register → JWT token stored in `localStorage` as `growitate_token`
+2. After login → Workspace Selector (two workspaces: Growitate CRM + DeploidX CRM)
+3. Selected workspace ID stored in `localStorage` as `growitate_workspace_id`
+4. All API calls scoped to `/api/workspaces/{workspaceId}/...`
+
+### Workspaces (seeded)
+| ID | Name | Slug | Description |
+|----|------|------|-------------|
+| 1  | Growitate CRM | growitate | Marketing & Lead Management |
+| 2  | DeploidX CRM | deploidx | DevOps & Hosting Clients |
 
 ## Structure
 
 ```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+artifacts/
+├── api-server/         # Express API server
+│   └── src/
+│       ├── middleware/auth.ts   # JWT auth middleware
+│       └── routes/
+│           ├── auth.ts          # POST /api/auth/login, register, GET /me
+│           ├── workspaces.ts    # GET /api/workspaces
+│           ├── clients.ts       # CRUD /api/workspaces/:id/clients
+│           ├── activities.ts    # Activity logging
+│           └── analytics.ts    # Analytics aggregations
+└── growitate-crm/      # React + Vite frontend
+    └── src/
+        ├── contexts/            # Auth + Workspace React contexts
+        ├── pages/               # Login, Register, Workspaces, Clients, Activities, Analytics
+        └── components/
+            └── layout/          # DashboardLayout with top navbar
+
+lib/
+├── api-spec/openapi.yaml        # OpenAPI 3.1 contract
+├── api-client-react/            # Generated React Query hooks
+├── api-zod/                     # Generated Zod schemas
+└── db/src/schema/               # Drizzle ORM tables (users, workspaces, clients, activities)
 ```
 
-## TypeScript & Composite Projects
+## Database Tables
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+- `users` — id, name, email, password, created_at
+- `workspaces` — id, name, slug, description
+- `clients` — id, workspace_id, client_name, display_name, phone, whatsapp, email, notes, lead_stage, opportunity_size, groups, created_at, last_activity_at
+- `activities` — id, client_id, workspace_id, type, description, date
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Lead Stages
+`new` → `contacted` → `qualified` → `proposal` → `negotiation` → `won` / `lost`
 
-## Root Scripts
+## Activity Types
+`client_added`, `call`, `meeting`, `note`, `follow_up`, `task`
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## CRM Pages
+- `/login` — Login form
+- `/register` — Registration form
+- `/workspaces` — Workspace selector
+- `/clients` — Client list with search, tabs, filters
+- `/clients/:id` — Client detail with activities timeline
+- `/activities` — Workspace activity log
+- `/analytics` — Charts: clients by stage, activities by type, monthly trends
 
-## Packages
+## Key Commands
 
-### `artifacts/api-server` (`@workspace/api-server`)
+```bash
+# Start API server
+pnpm --filter @workspace/api-server run dev
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+# Start frontend
+pnpm --filter @workspace/growitate-crm run dev
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+# Push DB schema changes
+pnpm --filter @workspace/db run push
 
-### `lib/db` (`@workspace/db`)
+# Regenerate API client from OpenAPI spec
+pnpm --filter @workspace/api-spec run codegen
+```
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+## Environment Variables
+- `DATABASE_URL` — PostgreSQL connection string (auto-provisioned by Replit)
+- `JWT_SECRET` — Optional; defaults to a built-in key (set this in production)
+- `PORT` — Auto-assigned per service

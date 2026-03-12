@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Growitate CRM API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: workspaces
+    description: Workspace operations
+  - name: clients
+    description: Client management
+  - name: activities
+    description: Activity tracking
+  - name: analytics
+    description: Analytics data
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +33,586 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /workspaces:
+    get:
+      operationId: getWorkspaces
+      tags: [workspaces]
+      summary: Get all workspaces
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workspace"
+
+  /workspaces/{workspaceId}/clients:
+    get:
+      operationId: getClients
+      tags: [clients]
+      summary: Get all clients for a workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: tab
+          in: query
+          schema:
+            type: string
+            enum: [all, uncontacted, followups]
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a new client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientRequest"
+      responses:
+        "201":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /workspaces/{workspaceId}/clients/{clientId}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get a single client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClientRequest"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete a client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /workspaces/{workspaceId}/clients/{clientId}/activities:
+    get:
+      operationId: getClientActivities
+      tags: [activities]
+      summary: Get activities for a client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Log an activity for a client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityRequest"
+      responses:
+        "201":
+          description: Activity created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+
+  /workspaces/{workspaceId}/activities:
+    get:
+      operationId: getWorkspaceActivities
+      tags: [activities]
+      summary: Get all activities for a workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+
+  /workspaces/{workspaceId}/analytics:
+    get:
+      operationId: getAnalytics
+      tags: [analytics]
+      summary: Get analytics for a workspace
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analytics"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+      required: [name, email, password]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required: [token, user]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+      required: [id, name, email]
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        clientCount:
+          type: integer
+      required: [id, name, slug, description]
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        workspaceId:
+          type: integer
+        clientName:
+          type: string
+        displayName:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        notes:
+          type: string
+        leadStage:
+          type: string
+          enum: [new, contacted, qualified, proposal, negotiation, won, lost]
+        opportunitySize:
+          type: string
+        groups:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastActivityAt:
+          type: string
+          format: date-time
+      required: [id, workspaceId, clientName, leadStage]
+
+    CreateClientRequest:
+      type: object
+      properties:
+        clientName:
+          type: string
+        displayName:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        notes:
+          type: string
+        leadStage:
+          type: string
+          enum: [new, contacted, qualified, proposal, negotiation, won, lost]
+        opportunitySize:
+          type: string
+        groups:
+          type: string
+      required: [clientName]
+
+    UpdateClientRequest:
+      type: object
+      properties:
+        clientName:
+          type: string
+        displayName:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        notes:
+          type: string
+        leadStage:
+          type: string
+          enum: [new, contacted, qualified, proposal, negotiation, won, lost]
+        opportunitySize:
+          type: string
+        groups:
+          type: string
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        workspaceId:
+          type: integer
+        type:
+          type: string
+          enum: [client_added, call, meeting, note, follow_up, task]
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        clientName:
+          type: string
+      required: [id, clientId, workspaceId, type, date]
+
+    CreateActivityRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [call, meeting, note, follow_up, task]
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+      required: [type]
+
+    Analytics:
+      type: object
+      properties:
+        totalClients:
+          type: integer
+        newClientsThisMonth:
+          type: integer
+        totalActivities:
+          type: integer
+        activitiesThisMonth:
+          type: integer
+        clientsByStage:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageCount"
+        activitiesByType:
+          type: array
+          items:
+            $ref: "#/components/schemas/TypeCount"
+        monthlyClients:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyCount"
+        wonClients:
+          type: integer
+        lostClients:
+          type: integer
+      required: [totalClients, newClientsThisMonth, totalActivities, activitiesThisMonth, clientsByStage, activitiesByType, monthlyClients]
+
+    StageCount:
+      type: object
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+      required: [stage, count]
+
+    TypeCount:
+      type: object
+      properties:
+        type:
+          type: string
+        count:
+          type: integer
+      required: [type, count]
+
+    MonthlyCount:
+      type: object
+      properties:
+        month:
+          type: string
+        count:
+          type: integer
+      required: [month, count]

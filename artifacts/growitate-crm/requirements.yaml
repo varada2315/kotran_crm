@@ -1,0 +1,15 @@
+packages:
+  "recharts": "Used for the analytics dashboard charts"
+  "date-fns": "Used for formatting dates and times nicely"
+  "framer-motion": "Used for page transitions and micro-interactions"
+  "@hookform/resolvers": "Used for Zod validation in forms"
+  "react-hook-form": "Used for form state management"
+
+images:
+  - path: "artifacts/growitate-crm/public/images/auth-bg.png"
+    description: "Abstract blurred mesh gradient background in soft purple, indigo, and light gray tones. Professional SaaS aesthetic."
+    aspect_ratio: "16:9"
+
+notes:
+  - "The app uses a token-based auth approach. Token is stored in localStorage and fetch is patched to automatically include the Authorization Bearer header."
+  - "API hooks from @workspace/api-client-react are used for all data fetching."
