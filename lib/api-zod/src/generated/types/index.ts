@@ -22,6 +22,7 @@ export * from "./getClientsTab";
 export * from "./healthStatus";
 export * from "./loginRequest";
 export * from "./monthlyCount";
+export * from "./opportunityCount";
 export * from "./registerRequest";
 export * from "./stageCount";
 export * from "./typeCount";

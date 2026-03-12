@@ -584,11 +584,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MonthlyCount"
+        opportunityBySize:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpportunityCount"
         wonClients:
           type: integer
         lostClients:
           type: integer
-      required: [totalClients, newClientsThisMonth, totalActivities, activitiesThisMonth, clientsByStage, activitiesByType, monthlyClients]
+      required: [totalClients, newClientsThisMonth, totalActivities, activitiesThisMonth, clientsByStage, activitiesByType, monthlyClients, opportunityBySize]
+
+    OpportunityCount:
+      type: object
+      properties:
+        size:
+          type: string
+        count:
+          type: integer
+      required: [size, count]
 
     StageCount:
       type: object

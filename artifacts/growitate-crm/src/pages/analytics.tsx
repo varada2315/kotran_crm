@@ -1,14 +1,16 @@
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useGetAnalytics } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, TrendingUp, Activity, Target, Loader2 } from "lucide-react";
+import { Users, TrendingUp, Activity, Target, DollarSign, Loader2 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell
+  LineChart, Line, PieChart, Pie, Cell, Legend
 } from "recharts";
 import { motion } from "framer-motion";
 
-const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#F43F5E', '#8B5CF6'];
+const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#F43F5E', '#8B5CF6', '#EC4899'];
+
+const OPPORTUNITY_COLORS = ['#10B981', '#3B82F6', '#7C3AED', '#F59E0B', '#F43F5E', '#8B5CF6'];
 
 export default function AnalyticsDashboard() {
   const { activeWorkspaceId } = useWorkspace();
@@ -29,6 +31,8 @@ export default function AnalyticsDashboard() {
     { label: "Won Deals", value: stats.wonClients || 0, icon: Target, color: "text-orange-500", bg: "bg-orange-500/10" },
   ];
 
+  const hasOpportunityData = stats.opportunityBySize && stats.opportunityBySize.length > 0;
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
@@ -36,6 +40,7 @@ export default function AnalyticsDashboard() {
         <p className="text-muted-foreground mt-1">Insights and metrics for your workspace</p>
       </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => (
           <Card key={i} className="rounded-2xl border-border/50 shadow-sm">
@@ -52,19 +57,20 @@ export default function AnalyticsDashboard() {
         ))}
       </div>
 
+      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="rounded-2xl border-border/50 shadow-sm">
           <CardHeader>
             <CardTitle>Clients by Lead Stage</CardTitle>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.clientsByStage} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                 <XAxis dataKey="stage" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} className="capitalize" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} allowDecimals={false} />
                 <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="count" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                <Bar dataKey="count" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={50} name="Clients" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -74,15 +80,15 @@ export default function AnalyticsDashboard() {
           <CardHeader>
             <CardTitle>Activities Breakdown</CardTitle>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={stats.activitiesByType}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
+                  cy="45%"
+                  innerRadius={60}
+                  outerRadius={90}
                   paddingAngle={5}
                   dataKey="count"
                   nameKey="type"
@@ -91,29 +97,109 @@ export default function AnalyticsDashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value, name) => [value, name]} />
+                <Legend iconType="circle" iconSize={8} formatter={(value) => <span style={{ fontSize: 12, color: '#64748B', textTransform: 'capitalize' }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        <Card className="rounded-2xl border-border/50 shadow-sm lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Client Growth (Last 6 Months)</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.monthlyClients} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Line type="monotone" dataKey="count" stroke="#7C3AED" strokeWidth={3} dot={{ r: 4, fill: '#7C3AED', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Opportunity Size Analysis */}
+      <Card className="rounded-2xl border-border/50 shadow-sm">
+        <CardHeader className="flex flex-row items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <DollarSign className="w-5 h-5 text-emerald-500" />
+          </div>
+          <div>
+            <CardTitle>Opportunity Size Distribution</CardTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">Number of clients by opportunity size</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {hasOpportunityData ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              {/* Bar Chart */}
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={stats.opportunityBySize}
+                    layout="vertical"
+                    margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} allowDecimals={false} />
+                    <YAxis type="category" dataKey="size" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} width={90} />
+                    <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [value, 'Clients']} />
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={32} name="Clients">
+                      {stats.opportunityBySize.map((_, index) => (
+                        <Cell key={`opp-${index}`} fill={OPPORTUNITY_COLORS[index % OPPORTUNITY_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Summary Table */}
+              <div className="space-y-3">
+                {stats.opportunityBySize.map((item, index) => {
+                  const total = stats.opportunityBySize.reduce((sum, o) => sum + o.count, 0);
+                  const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
+                  return (
+                    <div key={index} className="flex items-center gap-3">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: OPPORTUNITY_COLORS[index % OPPORTUNITY_COLORS.length] }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-medium truncate">{item.size}</span>
+                          <span className="text-sm text-muted-foreground ml-2">{item.count} ({pct}%)</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: OPPORTUNITY_COLORS[index % OPPORTUNITY_COLORS.length]
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+                <DollarSign className="w-7 h-7 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm text-muted-foreground">No opportunity size data yet.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Set opportunity sizes on your clients to see this chart.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Client Growth */}
+      <Card className="rounded-2xl border-border/50 shadow-sm">
+        <CardHeader>
+          <CardTitle>Client Growth (Last 6 Months)</CardTitle>
+        </CardHeader>
+        <CardContent className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={stats.monthlyClients} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} allowDecimals={false} />
+              <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value) => [value, 'New Clients']} />
+              <Line type="monotone" dataKey="count" stroke="#7C3AED" strokeWidth={3} dot={{ r: 4, fill: '#7C3AED', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} name="New Clients" />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MonthlyCount } from "./monthlyCount";
+import type { OpportunityCount } from "./opportunityCount";
 import type { StageCount } from "./stageCount";
 import type { TypeCount } from "./typeCount";
 
@@ -17,6 +18,7 @@ export interface Analytics {
   clientsByStage: StageCount[];
   activitiesByType: TypeCount[];
   monthlyClients: MonthlyCount[];
+  opportunityBySize: OpportunityCount[];
   wonClients?: number;
   lostClients?: number;
 }

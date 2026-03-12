@@ -81,6 +81,20 @@ router.get("/", authenticateToken, async (req, res) => {
       .groupBy(sql`TO_CHAR(${clientsTable.createdAt}, 'Mon YYYY')`)
       .orderBy(sql`MIN(${clientsTable.createdAt})`);
 
+    // Opportunity size distribution (exclude null/empty)
+    const opportunityBySize = await db
+      .select({
+        size: clientsTable.opportunitySize,
+        count: sql<number>`count(*)`,
+      })
+      .from(clientsTable)
+      .where(and(
+        eq(clientsTable.workspaceId, workspaceId),
+        sql`${clientsTable.opportunitySize} IS NOT NULL AND ${clientsTable.opportunitySize} != ''`
+      ))
+      .groupBy(clientsTable.opportunitySize)
+      .orderBy(sql`count(*) DESC`);
+
     res.json({
       totalClients: Number(total),
       newClientsThisMonth: Number(newThisMonth),
@@ -89,6 +103,7 @@ router.get("/", authenticateToken, async (req, res) => {
       clientsByStage: clientsByStage.map(s => ({ stage: s.stage, count: Number(s.count) })),
       activitiesByType: activitiesByType.map(a => ({ type: a.type, count: Number(a.count) })),
       monthlyClients: monthlyClients.map(m => ({ month: m.month, count: Number(m.count) })),
+      opportunityBySize: opportunityBySize.map(o => ({ size: o.size ?? "Unknown", count: Number(o.count) })),
       wonClients,
       lostClients,
     });

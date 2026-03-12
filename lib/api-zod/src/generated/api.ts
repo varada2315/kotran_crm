@@ -320,6 +320,12 @@ export const GetAnalyticsResponse = zod.object({
       count: zod.number(),
     }),
   ),
+  opportunityBySize: zod.array(
+    zod.object({
+      size: zod.string(),
+      count: zod.number(),
+    }),
+  ),
   wonClients: zod.number().optional(),
   lostClients: zod.number().optional(),
 });

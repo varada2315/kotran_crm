@@ -176,6 +176,11 @@ export interface MonthlyCount {
   count: number;
 }
 
+export interface OpportunityCount {
+  size: string;
+  count: number;
+}
+
 export interface Analytics {
   totalClients: number;
   newClientsThisMonth: number;
@@ -184,6 +189,7 @@ export interface Analytics {
   clientsByStage: StageCount[];
   activitiesByType: TypeCount[];
   monthlyClients: MonthlyCount[];
+  opportunityBySize: OpportunityCount[];
   wonClients?: number;
   lostClients?: number;
 }
