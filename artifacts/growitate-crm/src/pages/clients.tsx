@@ -183,6 +183,7 @@ export default function Clients() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-semibold text-foreground">Client / Company</TableHead>
                   <TableHead className="font-semibold text-foreground">Contact</TableHead>
+                  <TableHead className="font-semibold text-foreground">Notes</TableHead>
                   <TableHead className="font-semibold text-foreground">Stage</TableHead>
                   <TableHead className="font-semibold text-foreground">Last Activity</TableHead>
                   <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
@@ -191,7 +192,7 @@ export default function Clients() {
               <TableBody>
                 {clients?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       No clients found. Add a new client to get started.
                     </TableCell>
                   </TableRow>
@@ -217,6 +218,15 @@ export default function Clients() {
                             </div>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        {client.notes ? (
+                          <p className="text-sm text-muted-foreground truncate" title={client.notes}>
+                            {client.notes}
+                          </p>
+                        ) : (
+                          <span className="text-sm text-muted-foreground/40">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`capitalize font-medium border ${STAGE_COLORS[client.leadStage]}`}>
