@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { db, clientsTable, activitiesTable } from "@workspace/db";
+import { db, clientsTable, activitiesTable, isDatabaseEnabled } from "@workspace/db";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { authenticateToken } from "../middleware/auth.js";
+import { devStore } from "../dev-store.js";
 
 const router = Router({ mergeParams: true });
 
@@ -11,9 +12,51 @@ router.get("/", authenticateToken, async (req, res) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    if (!isDatabaseEnabled) {
+      const clients = devStore.clients.filter((client) => client.workspaceId === workspaceId);
+      const activities = devStore.activities.filter((activity) => activity.workspaceId === workspaceId);
+      const stageCounts = new Map<string, number>();
+      const typeCounts = new Map<string, number>();
+      const monthCounts = new Map<string, number>();
+      const oppCounts = new Map<string, number>();
+
+      for (const client of clients) {
+        stageCounts.set(client.leadStage, (stageCounts.get(client.leadStage) ?? 0) + 1);
+        if (client.opportunitySize) {
+          oppCounts.set(client.opportunitySize, (oppCounts.get(client.opportunitySize) ?? 0) + 1);
+        }
+        const month = client.createdAt.toLocaleString("en-US", { month: "short", year: "numeric" });
+        monthCounts.set(month, (monthCounts.get(month) ?? 0) + 1);
+      }
+
+      for (const activity of activities) {
+        typeCounts.set(activity.type, (typeCounts.get(activity.type) ?? 0) + 1);
+      }
+
+      res.json({
+        totalClients: clients.length,
+        totalRevenue: clients.reduce((sum, client) => sum + Number(client.revenueTotal ?? 0), 0),
+        newClientsThisMonth: clients.filter((client) => client.createdAt >= startOfMonth).length,
+        totalActivities: activities.length,
+        activitiesThisMonth: activities.filter((activity) => activity.date >= startOfMonth).length,
+        clientsByStage: Array.from(stageCounts.entries()).map(([stage, count]) => ({ stage, count })),
+        activitiesByType: Array.from(typeCounts.entries()).map(([type, count]) => ({ type, count })),
+        monthlyClients: Array.from(monthCounts.entries()).map(([month, count]) => ({ month, count })),
+        opportunityBySize: Array.from(oppCounts.entries()).map(([size, count]) => ({ size, count })),
+        wonClients: stageCounts.get("won") ?? 0,
+        lostClients: stageCounts.get("lost") ?? 0,
+      });
+      return;
+    }
+
     // Total clients
     const [{ total }] = await db
       .select({ total: sql<number>`count(*)` })
+      .from(clientsTable)
+      .where(eq(clientsTable.workspaceId, workspaceId));
+
+    const [{ totalRevenue }] = await db
+      .select({ totalRevenue: sql<number>`coalesce(sum(${clientsTable.revenueTotal}), 0)` })
       .from(clientsTable)
       .where(eq(clientsTable.workspaceId, workspaceId));
 
@@ -97,6 +140,7 @@ router.get("/", authenticateToken, async (req, res) => {
 
     res.json({
       totalClients: Number(total),
+      totalRevenue: Number(totalRevenue),
       newClientsThisMonth: Number(newThisMonth),
       totalActivities: Number(totalActivities),
       activitiesThisMonth: Number(activitiesThisMonth),

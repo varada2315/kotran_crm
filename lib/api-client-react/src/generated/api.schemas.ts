@@ -69,8 +69,26 @@ export interface Client {
   leadStage: ClientLeadStage;
   opportunitySize?: string;
   groups?: string;
+  purchasedItems?: PurchasedItem[];
+  invoices?: InvoiceAttachment[];
+  revenueTotal?: number;
   createdAt?: string;
   lastActivityAt?: string;
+}
+
+export interface PurchasedItem {
+  itemName: string;
+  quantity?: number;
+  unitPrice: number;
+  totalPrice?: number;
+}
+
+export interface InvoiceAttachment {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  fileDataUrl: string;
+  uploadedAt?: string;
 }
 
 export type CreateClientRequestLeadStage =
@@ -96,6 +114,8 @@ export interface CreateClientRequest {
   leadStage?: CreateClientRequestLeadStage;
   opportunitySize?: string;
   groups?: string;
+  purchasedItems?: PurchasedItem[];
+  invoices?: InvoiceAttachment[];
 }
 
 export type UpdateClientRequestLeadStage =
@@ -121,6 +141,8 @@ export interface UpdateClientRequest {
   leadStage?: UpdateClientRequestLeadStage;
   opportunitySize?: string;
   groups?: string;
+  purchasedItems?: PurchasedItem[];
+  invoices?: InvoiceAttachment[];
 }
 
 export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType];
@@ -183,6 +205,7 @@ export interface OpportunityCount {
 
 export interface Analytics {
   totalClients: number;
+  totalRevenue: number;
   newClientsThisMonth: number;
   totalActivities: number;
   activitiesThisMonth: number;

@@ -11,12 +11,26 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefin
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+
+  const normalizeWorkspace = (workspace: Workspace): Workspace => {
+    if (workspace.id === 1) {
+      return { ...workspace, name: "Growitate" };
+    }
+
+    if (workspace.id === 2) {
+      return { ...workspace, name: "DeploidX CRM" };
+    }
+
+    return workspace;
+  };
   
   useEffect(() => {
     const saved = localStorage.getItem("kotran_workspace");
     if (saved) {
       try {
-        setActiveWorkspace(JSON.parse(saved));
+        const parsed = normalizeWorkspace(JSON.parse(saved));
+        setActiveWorkspace(parsed);
+        localStorage.setItem("kotran_workspace", JSON.stringify(parsed));
       } catch (e) {
         // invalid JSON
       }
@@ -24,8 +38,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setWorkspace = (workspace: Workspace) => {
-    setActiveWorkspace(workspace);
-    localStorage.setItem("kotran_workspace", JSON.stringify(workspace));
+    const normalized = normalizeWorkspace(workspace);
+    setActiveWorkspace(normalized);
+    localStorage.setItem("kotran_workspace", JSON.stringify(normalized));
   };
 
   return (

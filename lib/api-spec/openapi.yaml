@@ -472,6 +472,16 @@ components:
           type: string
         groups:
           type: string
+        purchasedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchasedItem"
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceAttachment"
+        revenueTotal:
+          type: number
         createdAt:
           type: string
           format: date-time
@@ -502,6 +512,14 @@ components:
           type: string
         groups:
           type: string
+        purchasedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchasedItem"
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceAttachment"
       required: [clientName]
 
     UpdateClientRequest:
@@ -526,6 +544,14 @@ components:
           type: string
         groups:
           type: string
+        purchasedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchasedItem"
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceAttachment"
 
     Activity:
       type: object
@@ -566,6 +592,8 @@ components:
       properties:
         totalClients:
           type: integer
+        totalRevenue:
+          type: number
         newClientsThisMonth:
           type: integer
         totalActivities:
@@ -592,7 +620,36 @@ components:
           type: integer
         lostClients:
           type: integer
-      required: [totalClients, newClientsThisMonth, totalActivities, activitiesThisMonth, clientsByStage, activitiesByType, monthlyClients, opportunityBySize]
+      required: [totalClients, totalRevenue, newClientsThisMonth, totalActivities, activitiesThisMonth, clientsByStage, activitiesByType, monthlyClients, opportunityBySize]
+
+    PurchasedItem:
+      type: object
+      properties:
+        itemName:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+      required: [itemName, unitPrice]
+
+    InvoiceAttachment:
+      type: object
+      properties:
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+        fileDataUrl:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+      required: [fileName, mimeType, sizeBytes, fileDataUrl]
 
     OpportunityCount:
       type: object

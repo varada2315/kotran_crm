@@ -12,6 +12,7 @@ import type { TypeCount } from "./typeCount";
 
 export interface Analytics {
   totalClients: number;
+  totalRevenue: number;
   newClientsThisMonth: number;
   totalActivities: number;
   activitiesThisMonth: number;

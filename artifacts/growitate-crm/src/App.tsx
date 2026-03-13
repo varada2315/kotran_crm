@@ -16,6 +16,7 @@ import Clients from "./pages/clients";
 import ClientDetail from "./pages/client-detail";
 import Activities from "./pages/activities";
 import AnalyticsDashboard from "./pages/analytics";
+import RevenuePage from "./pages/revenue";
 import { DashboardLayout } from "./components/layout/dashboard-layout";
 
 // --- API FETCH INTERCEPTOR ---
@@ -71,11 +72,11 @@ function RedirectRoot() {
     if (isLoading) return;
     if (!token) {
       setLocation("/login");
-    } else if (!activeWorkspaceId) {
-      setLocation("/workspaces");
-    } else {
-      setLocation("/clients");
-    }
+      } else if (!activeWorkspaceId) {
+        setLocation("/workspaces");
+      } else {
+      setLocation("/revenue");
+      }
   }, [isLoading, token, activeWorkspaceId]);
 
   return null;
@@ -92,6 +93,10 @@ function Router() {
       
       <Route path="/clients">
         <ProtectedRoute><Clients /></ProtectedRoute>
+      </Route>
+
+      <Route path="/revenue">
+        <ProtectedRoute><RevenuePage /></ProtectedRoute>
       </Route>
       
       <Route path="/clients/:id">

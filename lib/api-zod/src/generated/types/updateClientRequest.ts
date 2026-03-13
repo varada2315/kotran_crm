@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { UpdateClientRequestLeadStage } from "./updateClientRequestLeadStage";
+import type { InvoiceAttachment } from "./invoiceAttachment";
+import type { PurchasedItem } from "./purchasedItem";
 
 export interface UpdateClientRequest {
   clientName?: string;
@@ -17,4 +19,6 @@ export interface UpdateClientRequest {
   leadStage?: UpdateClientRequestLeadStage;
   opportunitySize?: string;
   groups?: string;
+  purchasedItems?: PurchasedItem[];
+  invoices?: InvoiceAttachment[];
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useGetClients, useCreateClient } from "@workspace/api-client-react";
+import { useGetClients, useCreateClient, useDeleteClient } from "@workspace/api-client-react";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Loader2, Phone, Mail, MessageSquare } from "lucide-react";
+import { Search, Plus, Loader2, Phone, Mail, MessageSquare, Trash2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,6 +55,15 @@ export default function Clients() {
     }
   });
 
+  const deleteMutation = useDeleteClient({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [`/api/workspaces/${activeWorkspaceId}/clients`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/workspaces/${activeWorkspaceId}/analytics`] });
+      }
+    }
+  });
+
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<CreateClientForm>({
     resolver: zodResolver(createClientSchema),
     defaultValues: { leadStage: "new" }
@@ -63,6 +72,12 @@ export default function Clients() {
   const onSubmit = (data: CreateClientForm) => {
     if (!activeWorkspaceId) return;
     createMutation.mutate({ workspaceId: activeWorkspaceId, data: data as any });
+  };
+
+  const handleDeleteClient = (clientId: number, clientName: string) => {
+    if (!activeWorkspaceId) return;
+    if (!window.confirm(`Delete client "${clientName}"?`)) return;
+    deleteMutation.mutate({ workspaceId: activeWorkspaceId, clientId });
   };
 
   return (
@@ -174,6 +189,7 @@ export default function Clients() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-semibold text-foreground">Client / Company</TableHead>
                   <TableHead className="font-semibold text-foreground">Contact</TableHead>
+                  <TableHead className="font-semibold text-foreground">Revenue</TableHead>
                   <TableHead className="font-semibold text-foreground">Notes</TableHead>
                   <TableHead className="font-semibold text-foreground">Stage</TableHead>
                   <TableHead className="font-semibold text-foreground">Last Activity</TableHead>
@@ -183,7 +199,7 @@ export default function Clients() {
               <TableBody>
                 {clients?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                       No clients found. Add a new client to get started.
                     </TableCell>
                   </TableRow>
@@ -208,6 +224,11 @@ export default function Clients() {
                               {client.phone}
                             </div>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <div className="font-medium">
+                          {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(client.revenueTotal || 0)}
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[200px]">
@@ -245,6 +266,16 @@ export default function Clients() {
                               View Profile
                             </Button>
                           </Link>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-lg h-8 px-3 text-destructive hover:text-destructive"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => handleDeleteClient(client.id, client.clientName)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

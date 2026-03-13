@@ -93,6 +93,28 @@ export const GetClientsResponseItem = zod.object({
   ]),
   opportunitySize: zod.string().optional(),
   groups: zod.string().optional(),
+  purchasedItems: zod
+    .array(
+      zod.object({
+        itemName: zod.string(),
+        quantity: zod.number().optional(),
+        unitPrice: zod.number(),
+        totalPrice: zod.number().optional(),
+      }),
+    )
+    .optional(),
+  invoices: zod
+    .array(
+      zod.object({
+        fileName: zod.string(),
+        mimeType: zod.string(),
+        sizeBytes: zod.number(),
+        fileDataUrl: zod.string(),
+        uploadedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  revenueTotal: zod.number().optional(),
   createdAt: zod.date().optional(),
   lastActivityAt: zod.date().optional(),
 });
@@ -125,6 +147,27 @@ export const CreateClientBody = zod.object({
     .optional(),
   opportunitySize: zod.string().optional(),
   groups: zod.string().optional(),
+  purchasedItems: zod
+    .array(
+      zod.object({
+        itemName: zod.string(),
+        quantity: zod.number().optional(),
+        unitPrice: zod.number(),
+        totalPrice: zod.number().optional(),
+      }),
+    )
+    .optional(),
+  invoices: zod
+    .array(
+      zod.object({
+        fileName: zod.string(),
+        mimeType: zod.string(),
+        sizeBytes: zod.number(),
+        fileDataUrl: zod.string(),
+        uploadedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 /**
@@ -155,6 +198,28 @@ export const GetClientResponse = zod.object({
   ]),
   opportunitySize: zod.string().optional(),
   groups: zod.string().optional(),
+  purchasedItems: zod
+    .array(
+      zod.object({
+        itemName: zod.string(),
+        quantity: zod.number().optional(),
+        unitPrice: zod.number(),
+        totalPrice: zod.number().optional(),
+      }),
+    )
+    .optional(),
+  invoices: zod
+    .array(
+      zod.object({
+        fileName: zod.string(),
+        mimeType: zod.string(),
+        sizeBytes: zod.number(),
+        fileDataUrl: zod.string(),
+        uploadedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  revenueTotal: zod.number().optional(),
   createdAt: zod.date().optional(),
   lastActivityAt: zod.date().optional(),
 });
@@ -187,6 +252,27 @@ export const UpdateClientBody = zod.object({
     .optional(),
   opportunitySize: zod.string().optional(),
   groups: zod.string().optional(),
+  purchasedItems: zod
+    .array(
+      zod.object({
+        itemName: zod.string(),
+        quantity: zod.number().optional(),
+        unitPrice: zod.number(),
+        totalPrice: zod.number().optional(),
+      }),
+    )
+    .optional(),
+  invoices: zod
+    .array(
+      zod.object({
+        fileName: zod.string(),
+        mimeType: zod.string(),
+        sizeBytes: zod.number(),
+        fileDataUrl: zod.string(),
+        uploadedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const UpdateClientResponse = zod.object({
@@ -209,6 +295,28 @@ export const UpdateClientResponse = zod.object({
   ]),
   opportunitySize: zod.string().optional(),
   groups: zod.string().optional(),
+  purchasedItems: zod
+    .array(
+      zod.object({
+        itemName: zod.string(),
+        quantity: zod.number().optional(),
+        unitPrice: zod.number(),
+        totalPrice: zod.number().optional(),
+      }),
+    )
+    .optional(),
+  invoices: zod
+    .array(
+      zod.object({
+        fileName: zod.string(),
+        mimeType: zod.string(),
+        sizeBytes: zod.number(),
+        fileDataUrl: zod.string(),
+        uploadedAt: zod.string().optional(),
+      }),
+    )
+    .optional(),
+  revenueTotal: zod.number().optional(),
   createdAt: zod.date().optional(),
   lastActivityAt: zod.date().optional(),
 });
@@ -299,6 +407,7 @@ export const GetAnalyticsParams = zod.object({
 
 export const GetAnalyticsResponse = zod.object({
   totalClients: zod.number(),
+  totalRevenue: zod.number(),
   newClientsThisMonth: zod.number(),
   totalActivities: zod.number(),
   activitiesThisMonth: zod.number(),

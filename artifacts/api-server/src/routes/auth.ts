@@ -1,8 +1,9 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, isDatabaseEnabled } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { authenticateToken, generateToken, AuthRequest } from "../middleware/auth.js";
+import { devStore, nextUserId } from "../dev-store.js";
 
 const router = Router();
 
@@ -11,6 +12,27 @@ router.post("/register", async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
       res.status(400).json({ error: "Bad Request", message: "name, email, and password are required" });
+      return;
+    }
+
+    if (!isDatabaseEnabled) {
+      const existing = devStore.users.find((user) => user.email === email);
+      if (existing) {
+        res.status(400).json({ error: "Bad Request", message: "Email already registered" });
+        return;
+      }
+
+      const hashed = await bcrypt.hash(password, 10);
+      const user = {
+        id: nextUserId(),
+        name,
+        email,
+        password: hashed,
+        createdAt: new Date(),
+      };
+      devStore.users.push(user as typeof devStore.users[number]);
+      const token = generateToken(user.id);
+      res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
       return;
     }
 
@@ -39,6 +61,24 @@ router.post("/login", async (req, res) => {
       return;
     }
 
+    if (!isDatabaseEnabled) {
+      const user = devStore.users.find((entry) => entry.email === email) as (typeof devStore.users)[number] | undefined;
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized", message: "Invalid credentials" });
+        return;
+      }
+
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        res.status(401).json({ error: "Unauthorized", message: "Invalid credentials" });
+        return;
+      }
+
+      const token = generateToken(user.id);
+      res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+      return;
+    }
+
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
     if (!user) {
       res.status(401).json({ error: "Unauthorized", message: "Invalid credentials" });
@@ -61,6 +101,16 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", authenticateToken, async (req: AuthRequest, res) => {
   try {
+    if (!isDatabaseEnabled) {
+      const user = devStore.users.find((entry) => entry.id === req.userId);
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      res.json({ id: user.id, name: user.name, email: user.email });
+      return;
+    }
+
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!)).limit(1);
     if (!user) {
       res.status(401).json({ error: "Unauthorized" });

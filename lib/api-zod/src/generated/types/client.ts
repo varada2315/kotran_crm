@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ClientLeadStage } from "./clientLeadStage";
+import type { InvoiceAttachment } from "./invoiceAttachment";
+import type { PurchasedItem } from "./purchasedItem";
 
 export interface Client {
   id: number;
@@ -19,6 +21,9 @@ export interface Client {
   leadStage: ClientLeadStage;
   opportunitySize?: string;
   groups?: string;
+  purchasedItems?: PurchasedItem[];
+  invoices?: InvoiceAttachment[];
+  revenueTotal?: number;
   createdAt?: Date;
   lastActivityAt?: Date;
 }

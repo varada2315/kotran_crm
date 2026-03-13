@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { db, activitiesTable, clientsTable } from "@workspace/db";
+import { db, activitiesTable, clientsTable, isDatabaseEnabled } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { authenticateToken } from "../middleware/auth.js";
+import { devStore, nextActivityId } from "../dev-store.js";
 
 const router = Router({ mergeParams: true });
 
@@ -9,6 +10,15 @@ const router = Router({ mergeParams: true });
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const workspaceId = parseInt(req.params.workspaceId);
+
+    if (!isDatabaseEnabled) {
+      const activities = devStore.activities
+        .filter((activity) => activity.workspaceId === workspaceId)
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .slice(0, 100);
+      res.json(activities);
+      return;
+    }
 
     const activities = await db
       .select({
@@ -39,6 +49,14 @@ router.get("/clients/:clientId/activities", authenticateToken, async (req, res) 
     const workspaceId = parseInt(req.params.workspaceId);
     const clientId = parseInt(req.params.clientId);
 
+    if (!isDatabaseEnabled) {
+      const activities = devStore.activities
+        .filter((activity) => activity.workspaceId === workspaceId && activity.clientId === clientId)
+        .sort((a, b) => b.date.getTime() - a.date.getTime());
+      res.json(activities);
+      return;
+    }
+
     const activities = await db
       .select()
       .from(activitiesTable)
@@ -61,6 +79,25 @@ router.post("/clients/:clientId/activities", authenticateToken, async (req, res)
 
     if (!type) {
       res.status(400).json({ error: "Bad Request", message: "type is required" });
+      return;
+    }
+
+    if (!isDatabaseEnabled) {
+      const activity = {
+        id: nextActivityId(),
+        clientId,
+        workspaceId,
+        type,
+        description: description || null,
+        date: date ? new Date(date) : new Date(),
+        clientName: devStore.clients.find((client) => client.id === clientId)?.clientName,
+      };
+      devStore.activities.push(activity);
+      const client = devStore.clients.find((entry) => entry.id === clientId);
+      if (client) {
+        client.lastActivityAt = new Date();
+      }
+      res.status(201).json(activity);
       return;
     }
 

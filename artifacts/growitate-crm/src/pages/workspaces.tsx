@@ -15,13 +15,13 @@ export default function Workspaces() {
 
   // If no workspaces returned from API, fallback to default ones as requested
   const displayWorkspaces = workspaces?.length ? workspaces : [
-    { id: 1, name: "Kotran CRM", slug: "growitate", description: "Marketing & Lead Management", clientCount: 12 },
+    { id: 1, name: "Growitate", slug: "growitate", description: "Marketing & Lead Management", clientCount: 12 },
     { id: 2, name: "DeploidX CRM", slug: "deploidx", description: "DevOps & Hosting Clients", clientCount: 8 }
   ];
 
   const handleSelect = (ws: any) => {
     setWorkspace(ws);
-    setLocation("/clients");
+    setLocation("/revenue");
   };
 
   if (isLoading) {

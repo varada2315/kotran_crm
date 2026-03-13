@@ -26,6 +26,7 @@ export default function AnalyticsDashboard() {
 
   const statCards = [
     { label: "Total Clients", value: stats.totalClients, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Total Revenue", value: new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(stats.totalRevenue), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { label: "New This Month", value: stats.newClientsThisMonth, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { label: "Total Activities", value: stats.totalActivities, icon: Activity, color: "text-purple-500", bg: "bg-purple-500/10" },
     { label: "Won Deals", value: stats.wonClients || 0, icon: Target, color: "text-orange-500", bg: "bg-orange-500/10" },
@@ -41,7 +42,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((stat, i) => (
           <Card key={i} className="rounded-2xl border-border/50 shadow-sm">
             <CardContent className="p-6 flex items-center justify-between">
