@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Phone, Mail, MessageSquare, Briefcase, Clock, Calendar, FileText, CheckCircle2, MoreVertical, Loader2, Save, Plus } from "lucide-react";
-import { STAGE_COLORS } from "./clients";
+import { STAGE_COLORS } from "@/lib/stage-colors";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import { AuthProvider, useAuth } from "./contexts/auth-context";
+import { AuthProvider } from "./contexts/auth-context";
+import { useAuth } from "./contexts/use-auth";
 import { WorkspaceProvider, useWorkspace } from "./contexts/workspace-context";
 
 // Pages
