@@ -10,31 +10,57 @@ import { WorkspaceProvider, useWorkspace } from "./contexts/workspace-context";
 
 // Pages
 import Login from "./pages/login";
-import Register from "./pages/register";
 import Workspaces from "./pages/workspaces";
 import Clients from "./pages/clients";
+import LeadsDashboard from "./pages/leads";
 import ClientDetail from "./pages/client-detail";
+import LeadDetail from "./pages/leads-detail";
 import Activities from "./pages/activities";
 import AnalyticsDashboard from "./pages/analytics";
 import RevenuePage from "./pages/revenue";
+import DailyTracker from "./pages/daily-tracker";
+import AdminUsers from "./pages/admin-users";
 import { DashboardLayout } from "./components/layout/dashboard-layout";
 
 // --- API FETCH INTERCEPTOR ---
 // Automatically injects the JWT token from localStorage into all /api calls
+const API_PREFIX = "/api";
 const originalFetch = window.fetch;
+
+function isApiRequest(resource: RequestInfo | URL): boolean {
+  const rawUrl =
+    typeof resource === "string"
+      ? resource
+      : resource instanceof URL
+        ? resource.toString()
+        : resource.url;
+
+  try {
+    const parsed = new URL(rawUrl, window.location.origin);
+    return parsed.pathname.startsWith(API_PREFIX);
+  } catch {
+    return rawUrl.startsWith(API_PREFIX);
+  }
+}
+
 window.fetch = async (...args) => {
   const token = localStorage.getItem("kotran_token");
   const [resource, config] = args;
-  
-  if (token && typeof resource === "string" && resource.startsWith("/api")) {
-    const headers = new Headers(config?.headers);
-    headers.set("Authorization", `Bearer ${token}`);
-    return originalFetch(resource, { ...config, headers });
-  } else if (token && resource instanceof Request && resource.url.includes("/api")) {
-    resource.headers.set("Authorization", `Bearer ${token}`);
-    return originalFetch(resource, config);
+
+  if (!token || !isApiRequest(resource)) {
+    return originalFetch(...args);
   }
-  return originalFetch(...args);
+
+  if (resource instanceof Request) {
+    const headers = new Headers(resource.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    const requestWithAuth = new Request(resource, { headers });
+    return originalFetch(requestWithAuth, config);
+  }
+
+  const headers = new Headers(config?.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  return originalFetch(resource, { ...config, headers });
 };
 
 const queryClient = new QueryClient({
@@ -46,8 +72,8 @@ const queryClient = new QueryClient({
   }
 });
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token, isLoading } = useAuth();
+function ProtectedRoute({ children, adminOnly }: { children: React.ReactNode, adminOnly?: boolean }) {
+  const { token, user, isLoading } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const [, setLocation] = useLocation();
 
@@ -55,16 +81,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
     if (!token) setLocation("/login");
     else if (!activeWorkspaceId) setLocation("/workspaces");
-  }, [isLoading, token, activeWorkspaceId]);
+    else if (adminOnly && user?.role !== "admin") setLocation("/leads");
+  }, [isLoading, token, activeWorkspaceId, adminOnly, user]);
 
   if (isLoading) return null;
   if (!token || !activeWorkspaceId) return null;
+  if (adminOnly && user?.role !== "admin") return null;
 
   return <DashboardLayout>{children}</DashboardLayout>;
 }
 
 function RedirectRoot() {
-  const { token, isLoading } = useAuth();
+  const { token, user, isLoading } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const [, setLocation] = useLocation();
 
@@ -72,12 +100,16 @@ function RedirectRoot() {
     if (isLoading) return;
     if (!token) {
       setLocation("/login");
-      } else if (!activeWorkspaceId) {
-        setLocation("/workspaces");
+    } else if (!activeWorkspaceId) {
+      setLocation("/workspaces");
+    } else {
+      if (user?.role === "admin") {
+        setLocation("/revenue");
       } else {
-      setLocation("/revenue");
+        setLocation("/leads");
       }
-  }, [isLoading, token, activeWorkspaceId]);
+    }
+  }, [isLoading, token, activeWorkspaceId, user]);
 
   return null;
 }
@@ -86,7 +118,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
       
       {/* App Routes */}
       <Route path="/workspaces" component={Workspaces} />
@@ -95,12 +126,20 @@ function Router() {
         <ProtectedRoute><Clients /></ProtectedRoute>
       </Route>
 
+      <Route path="/leads">
+        <ProtectedRoute><LeadsDashboard /></ProtectedRoute>
+      </Route>
+
       <Route path="/revenue">
-        <ProtectedRoute><RevenuePage /></ProtectedRoute>
+        <ProtectedRoute adminOnly><RevenuePage /></ProtectedRoute>
       </Route>
       
       <Route path="/clients/:id">
         {(params) => <ProtectedRoute><ClientDetail id={Number(params.id)} /></ProtectedRoute>}
+      </Route>
+      
+      <Route path="/leads/:id">
+        {(params) => <ProtectedRoute><LeadDetail id={Number(params.id)} /></ProtectedRoute>}
       </Route>
       
       <Route path="/activities">
@@ -108,7 +147,15 @@ function Router() {
       </Route>
       
       <Route path="/analytics">
-        <ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>
+        <ProtectedRoute adminOnly><AnalyticsDashboard /></ProtectedRoute>
+      </Route>
+      
+      <Route path="/daily-tracker">
+        <ProtectedRoute><DailyTracker /></ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/users">
+        <ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>
       </Route>
       
       <Route path="/" component={RedirectRoot} />

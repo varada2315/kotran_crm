@@ -5,9 +5,11 @@
  * Growitate CRM API
  * OpenAPI spec version: 0.1.0
  */
+import type { GetClientsPeriod } from "./getClientsPeriod";
 import type { GetClientsTab } from "./getClientsTab";
 
 export type GetClientsParams = {
   search?: string;
   tab?: GetClientsTab;
+  period?: GetClientsPeriod;
 };

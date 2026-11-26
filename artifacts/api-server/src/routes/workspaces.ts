@@ -2,13 +2,14 @@ import { Router } from "express";
 import { db, workspacesTable, clientsTable, isDatabaseEnabled } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
 import { authenticateToken } from "../middleware/auth.js";
-import { devStore } from "../dev-store.js";
+import { devStore, ensureDevStoreReady } from "../dev-store.js";
 
 const router = Router();
 
 router.get("/", authenticateToken, async (_req, res) => {
   try {
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       res.json(
         devStore.workspaces.map((workspace) => ({
           ...workspace,

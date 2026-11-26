@@ -5,9 +5,9 @@
  * Growitate CRM API
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateClientRequestLeadStage } from "./updateClientRequestLeadStage";
 import type { InvoiceAttachment } from "./invoiceAttachment";
 import type { PurchasedItem } from "./purchasedItem";
+import type { UpdateClientRequestLeadStage } from "./updateClientRequestLeadStage";
 
 export interface UpdateClientRequest {
   clientName?: string;

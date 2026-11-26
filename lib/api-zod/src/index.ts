@@ -1,2 +1,29 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  Activity,
+  ActivityType,
+  Analytics,
+  AuthResponse,
+  Client,
+  ClientLeadStage,
+  CreateActivityRequest,
+  CreateActivityRequestType,
+  CreateClientRequest,
+  CreateClientRequestLeadStage,
+  ErrorResponse,
+  // GetClientsParams, // Skip to avoid collision with zod schema
+  GetClientsTab,
+  HealthStatus,
+  LoginRequest,
+  MonthlyCount,
+  InvoiceAttachment,
+  OpportunityCount,
+  PurchasedItem,
+  RegisterRequest,
+  StageCount,
+  TypeCount,
+  UpdateClientRequest,
+  UpdateClientRequestLeadStage,
+  User,
+  Workspace,
+} from "./generated/types";

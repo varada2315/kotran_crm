@@ -21,4 +21,6 @@ export interface CreateClientRequest {
   groups?: string;
   purchasedItems?: PurchasedItem[];
   invoices?: InvoiceAttachment[];
+  createdAt?: Date;
+  revenueTotal?: number;
 }

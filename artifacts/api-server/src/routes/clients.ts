@@ -2,7 +2,13 @@ import { Router } from "express";
 import { db, clientsTable, activitiesTable, isDatabaseEnabled } from "@workspace/db";
 import { eq, and, ilike, sql } from "drizzle-orm";
 import { authenticateToken } from "../middleware/auth.js";
-import { devStore, nextActivityId, nextClientId } from "../dev-store.js";
+import {
+  devStore,
+  ensureDevStoreReady,
+  nextActivityId,
+  nextClientId,
+  persistDevStore,
+} from "../dev-store.js";
 
 const router = Router({ mergeParams: true });
 
@@ -19,6 +25,7 @@ type InvoiceAttachment = {
   sizeBytes: number;
   fileDataUrl: string;
   uploadedAt?: string;
+  amount?: number;
 };
 
 function safeJsonParse<T>(value: unknown, fallback: T): T {
@@ -84,33 +91,45 @@ function normalizeInvoices(value: unknown): InvoiceAttachment[] {
         sizeBytes: Number(record.sizeBytes ?? 0),
         fileDataUrl: String(record.fileDataUrl),
         uploadedAt: typeof record.uploadedAt === "string" ? record.uploadedAt : new Date().toISOString(),
+        amount: Number(record.amount ?? 0),
       };
     })
     .filter((invoice): invoice is InvoiceAttachment => invoice !== null);
 }
 
-function computeRevenueTotal(items: PurchasedItem[]) {
-  return items.reduce((sum, item) => sum + Number(item.totalPrice ?? item.unitPrice * (item.quantity ?? 1)), 0);
+function computeRevenueTotal(invoices: InvoiceAttachment[]) {
+  return invoices.reduce((sum, invoice) => sum + Number(invoice.amount ?? 0), 0);
 }
 
 function serializeClient(client: Record<string, unknown>) {
   const purchasedItems = normalizePurchasedItems(client.purchasedItems);
   const invoices = normalizeInvoices(client.invoices);
 
-  return {
+  const result = {
     ...client,
     purchasedItems,
     invoices,
-    revenueTotal: Number(client.revenueTotal ?? computeRevenueTotal(purchasedItems)),
+    revenueTotal: Number(client.revenueTotal ?? computeRevenueTotal(invoices)),
   };
+  console.log("Serialized Client:", JSON.stringify(result, null, 2));
+  return result;
 }
 
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const workspaceId = parseInt(req.params.workspaceId);
-    const { search, tab } = req.query as { search?: string; tab?: string };
+    const { search, tab, period } = req.query as { search?: string; tab?: string; period?: string };
+    const now = new Date();
+    let startDate: Date | null = null;
+    if (period) {
+      if (period === "day") startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      else if (period === "week") startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      else if (period === "year") startDate = new Date(now.getFullYear(), 0, 1);
+      else if (period === "month") startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       let clients = devStore.clients.filter((client) => client.workspaceId === workspaceId);
       if (search) {
         clients = clients.filter((client) => client.clientName.toLowerCase().includes(search.toLowerCase()));
@@ -119,6 +138,9 @@ router.get("/", authenticateToken, async (req, res) => {
         clients = clients.filter((client) => client.leadStage === "new");
       } else if (tab === "followups") {
         clients = clients.filter((client) => client.leadStage === "contacted");
+      }
+      if (startDate) {
+        clients = clients.filter((client) => client.createdAt >= startDate!);
       }
       clients.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       res.json(clients.map((client) => serializeClient(client)));
@@ -137,6 +159,10 @@ router.get("/", authenticateToken, async (req, res) => {
       conditions.push(eq(clientsTable.leadStage, "contacted"));
     }
 
+    if (startDate) {
+      conditions.push(sql`${clientsTable.createdAt} >= ${startDate}`);
+    }
+
     const clients = await db
       .select()
       .from(clientsTable)
@@ -152,6 +178,7 @@ router.get("/", authenticateToken, async (req, res) => {
 
 router.post("/", authenticateToken, async (req, res) => {
   try {
+    console.log("POST /clients body:", JSON.stringify(req.body, null, 2));
     const workspaceId = parseInt(req.params.workspaceId);
     const {
       clientName,
@@ -165,21 +192,20 @@ router.post("/", authenticateToken, async (req, res) => {
       groups,
       purchasedItems,
       invoices,
+      createdAt,
     } = req.body;
 
-    if (!clientName) {
-      res.status(400).json({ error: "Bad Request", message: "clientName is required" });
-      return;
-    }
+    const finalClientName = clientName || (phone ? `Client ${phone}` : "New Client");
 
     const normalizedPurchasedItems = normalizePurchasedItems(purchasedItems);
     const normalizedInvoices = normalizeInvoices(invoices);
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const client = {
         id: nextClientId(),
         workspaceId,
-        clientName,
+        clientName: finalClientName,
         displayName: displayName || null,
         phone: phone || null,
         whatsapp: whatsapp || null,
@@ -190,8 +216,8 @@ router.post("/", authenticateToken, async (req, res) => {
         groups: groups || null,
         purchasedItems: normalizedPurchasedItems,
         invoices: normalizedInvoices,
-        revenueTotal: computeRevenueTotal(normalizedPurchasedItems),
-        createdAt: new Date(),
+        revenueTotal: Number(req.body.revenueTotal ?? computeRevenueTotal(normalizedInvoices)),
+        createdAt: createdAt ? new Date(createdAt) : new Date(),
         lastActivityAt: null,
       };
       devStore.clients.push(client);
@@ -200,17 +226,19 @@ router.post("/", authenticateToken, async (req, res) => {
         clientId: client.id,
         workspaceId,
         type: "client_added",
-        description: `Client ${clientName} was added to the CRM`,
+        description: `Client ${finalClientName} was added to the CRM`,
         date: new Date(),
-        clientName,
+        clientName: finalClientName,
       });
+      await persistDevStore();
+      console.log("Created DevClient:", JSON.stringify(client, null, 2));
       res.status(201).json(serializeClient(client));
       return;
     }
 
     const [client] = await db.insert(clientsTable).values({
       workspaceId,
-      clientName,
+      clientName: finalClientName,
       displayName: displayName || null,
       phone: phone || null,
       whatsapp: whatsapp || null,
@@ -221,7 +249,8 @@ router.post("/", authenticateToken, async (req, res) => {
       groups: groups || null,
       purchasedItems: JSON.stringify(normalizedPurchasedItems),
       invoices: JSON.stringify(normalizedInvoices),
-      revenueTotal: computeRevenueTotal(normalizedPurchasedItems),
+      revenueTotal: Number(req.body.revenueTotal ?? computeRevenueTotal(normalizedInvoices)),
+      createdAt: createdAt ? new Date(createdAt) : undefined,
     }).returning();
 
     // Log client_added activity
@@ -246,6 +275,7 @@ router.get("/:clientId", authenticateToken, async (req, res) => {
     const clientId = parseInt(req.params.clientId);
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const client = devStore.clients.find((entry) => entry.id === clientId && entry.workspaceId === workspaceId);
       if (!client) {
         res.status(404).json({ error: "Not Found", message: "Client not found" });
@@ -286,14 +316,16 @@ router.put("/:clientId", authenticateToken, async (req, res) => {
     if ("purchasedItems" in updates) {
       const normalizedPurchasedItems = normalizePurchasedItems(updates.purchasedItems);
       preparedUpdates.purchasedItems = JSON.stringify(normalizedPurchasedItems);
-      preparedUpdates.revenueTotal = computeRevenueTotal(normalizedPurchasedItems);
     }
 
     if ("invoices" in updates) {
-      preparedUpdates.invoices = JSON.stringify(normalizeInvoices(updates.invoices));
+      const normalizedInvoices = normalizeInvoices(updates.invoices);
+      preparedUpdates.invoices = JSON.stringify(normalizedInvoices);
+      preparedUpdates.revenueTotal = computeRevenueTotal(normalizedInvoices);
     }
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const client = devStore.clients.find((entry) => entry.id === clientId && entry.workspaceId === workspaceId);
       if (!client) {
         res.status(404).json({ error: "Not Found", message: "Client not found" });
@@ -308,10 +340,11 @@ router.put("/:clientId", authenticateToken, async (req, res) => {
       Object.assign(client, updates, {
         purchasedItems: nextPurchasedItems,
         invoices: nextInvoices,
-        revenueTotal: computeRevenueTotal(nextPurchasedItems),
+        revenueTotal: computeRevenueTotal(nextInvoices),
         lastActivityAt: new Date(),
       });
 
+      await persistDevStore();
       res.json(serializeClient(client));
       return;
     }
@@ -340,11 +373,13 @@ router.delete("/:clientId", authenticateToken, async (req, res) => {
     const clientId = parseInt(req.params.clientId);
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const clientIndex = devStore.clients.findIndex((entry) => entry.id === clientId && entry.workspaceId === workspaceId);
       if (clientIndex >= 0) {
         devStore.clients.splice(clientIndex, 1);
         devStore.activities = devStore.activities.filter((activity) => activity.clientId !== clientId);
       }
+      await persistDevStore();
       res.status(204).send();
       return;
     }

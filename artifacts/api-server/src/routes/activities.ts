@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, activitiesTable, clientsTable, isDatabaseEnabled } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { authenticateToken } from "../middleware/auth.js";
-import { devStore, nextActivityId } from "../dev-store.js";
+import { devStore, ensureDevStoreReady, nextActivityId, persistDevStore } from "../dev-store.js";
 
 const router = Router({ mergeParams: true });
 
@@ -12,6 +12,7 @@ router.get("/", authenticateToken, async (req, res) => {
     const workspaceId = parseInt(req.params.workspaceId);
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const activities = devStore.activities
         .filter((activity) => activity.workspaceId === workspaceId)
         .sort((a, b) => b.date.getTime() - a.date.getTime())
@@ -50,6 +51,7 @@ router.get("/clients/:clientId/activities", authenticateToken, async (req, res) 
     const clientId = parseInt(req.params.clientId);
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const activities = devStore.activities
         .filter((activity) => activity.workspaceId === workspaceId && activity.clientId === clientId)
         .sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -83,6 +85,7 @@ router.post("/clients/:clientId/activities", authenticateToken, async (req, res)
     }
 
     if (!isDatabaseEnabled) {
+      await ensureDevStoreReady();
       const activity = {
         id: nextActivityId(),
         clientId,
@@ -97,6 +100,7 @@ router.post("/clients/:clientId/activities", authenticateToken, async (req, res)
       if (client) {
         client.lastActivityAt = new Date();
       }
+      await persistDevStore();
       res.status(201).json(activity);
       return;
     }

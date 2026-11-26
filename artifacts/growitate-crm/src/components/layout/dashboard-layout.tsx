@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, Users, ActivitySquare, BarChart3, LogOut, Briefcase, IndianRupee } from "lucide-react";
+import { Building2, Users, UserPlus, ActivitySquare, BarChart3, LogOut, Briefcase, IndianRupee, Calendar, Receipt } from "lucide-react";
 import { useAuth } from "@/contexts/use-auth";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FollowUpBadge } from "@/components/follow-up-badge";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -20,11 +21,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace();
 
   const navItems = [
-    { label: "Revenue", icon: IndianRupee, path: "/revenue" },
+    { label: "Revenue", icon: IndianRupee, path: "/revenue", adminOnly: true },
     { label: "Clients", icon: Users, path: "/clients" },
+    { label: "Leads", icon: UserPlus, path: "/leads" },
     { label: "Activities", icon: ActivitySquare, path: "/activities" },
-    { label: "Analytics", icon: BarChart3, path: "/analytics" },
-  ];
+    { label: "Analytics", icon: BarChart3, path: "/analytics", adminOnly: true },
+    { label: "Daily Tracker", icon: Calendar, path: "/daily-tracker" },
+    { label: "Users", icon: Users, path: "/admin/users", adminOnly: true },
+  ].filter(item => !item.adminOnly || user?.role === "admin");
 
   return (
     <div className="min-h-screen w-full bg-background font-sans">
@@ -42,6 +46,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
+              <FollowUpBadge />
+              
               <Link href="/workspaces">
                 <Button variant="outline" className="rounded-xl border-border/60">
                   <Briefcase className="mr-2 h-4 w-4" />

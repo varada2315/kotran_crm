@@ -57,6 +57,22 @@ export const ClientLeadStage = {
   lost: "lost",
 } as const;
 
+export interface PurchasedItem {
+  itemName: string;
+  quantity?: number;
+  unitPrice: number;
+  totalPrice?: number;
+}
+
+export interface InvoiceAttachment {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  fileDataUrl: string;
+  uploadedAt?: string;
+  amount?: number;
+}
+
 export interface Client {
   id: number;
   workspaceId: number;
@@ -74,21 +90,6 @@ export interface Client {
   revenueTotal?: number;
   createdAt?: string;
   lastActivityAt?: string;
-}
-
-export interface PurchasedItem {
-  itemName: string;
-  quantity?: number;
-  unitPrice: number;
-  totalPrice?: number;
-}
-
-export interface InvoiceAttachment {
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-  fileDataUrl: string;
-  uploadedAt?: string;
 }
 
 export type CreateClientRequestLeadStage =
@@ -116,6 +117,8 @@ export interface CreateClientRequest {
   groups?: string;
   purchasedItems?: PurchasedItem[];
   invoices?: InvoiceAttachment[];
+  createdAt?: string;
+  revenueTotal?: number;
 }
 
 export type UpdateClientRequestLeadStage =
@@ -220,6 +223,7 @@ export interface Analytics {
 export type GetClientsParams = {
   search?: string;
   tab?: GetClientsTab;
+  period?: GetClientsPeriod;
 };
 
 export type GetClientsTab = (typeof GetClientsTab)[keyof typeof GetClientsTab];
@@ -228,4 +232,14 @@ export const GetClientsTab = {
   all: "all",
   uncontacted: "uncontacted",
   followups: "followups",
+} as const;
+
+export type GetClientsPeriod =
+  (typeof GetClientsPeriod)[keyof typeof GetClientsPeriod];
+
+export const GetClientsPeriod = {
+  day: "day",
+  week: "week",
+  month: "month",
+  year: "year",
 } as const;

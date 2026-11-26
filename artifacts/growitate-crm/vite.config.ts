@@ -5,8 +5,9 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 const isServeMode = process.env.npm_lifecycle_event === "dev" || process.env.npm_lifecycle_event === "serve";
-const rawPort = process.env.PORT ?? "5000";
+const rawPort = process.env.PORT ?? "5676";
 const port = Number(rawPort);
+const apiProxyTarget = process.env.API_PROXY_TARGET ?? "http://127.0.0.1:5001";
 
 if (isServeMode && (Number.isNaN(port) || port <= 0)) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
@@ -54,7 +55,7 @@ export default defineConfig({
       ? {
           proxy: {
             "/api": {
-              target: process.env.API_PROXY_TARGET || "http://127.0.0.1:5001",
+              target: apiProxyTarget,
               changeOrigin: true,
             },
           },

@@ -71,6 +71,7 @@ export const GetClientsParams = zod.object({
 export const GetClientsQueryParams = zod.object({
   search: zod.coerce.string().optional(),
   tab: zod.enum(["all", "uncontacted", "followups"]).optional(),
+  period: zod.enum(["day", "week", "month", "year"]).optional(),
 });
 
 export const GetClientsResponseItem = zod.object({
@@ -110,7 +111,8 @@ export const GetClientsResponseItem = zod.object({
         mimeType: zod.string(),
         sizeBytes: zod.number(),
         fileDataUrl: zod.string(),
-        uploadedAt: zod.string().optional(),
+        uploadedAt: zod.date().optional(),
+        amount: zod.number().optional(),
       }),
     )
     .optional(),
@@ -164,10 +166,13 @@ export const CreateClientBody = zod.object({
         mimeType: zod.string(),
         sizeBytes: zod.number(),
         fileDataUrl: zod.string(),
-        uploadedAt: zod.string().optional(),
+        uploadedAt: zod.date().optional(),
+        amount: zod.number().optional(),
       }),
     )
     .optional(),
+  createdAt: zod.date().optional(),
+  revenueTotal: zod.number().optional(),
 });
 
 /**
@@ -215,7 +220,8 @@ export const GetClientResponse = zod.object({
         mimeType: zod.string(),
         sizeBytes: zod.number(),
         fileDataUrl: zod.string(),
-        uploadedAt: zod.string().optional(),
+        uploadedAt: zod.date().optional(),
+        amount: zod.number().optional(),
       }),
     )
     .optional(),
@@ -269,7 +275,8 @@ export const UpdateClientBody = zod.object({
         mimeType: zod.string(),
         sizeBytes: zod.number(),
         fileDataUrl: zod.string(),
-        uploadedAt: zod.string().optional(),
+        uploadedAt: zod.date().optional(),
+        amount: zod.number().optional(),
       }),
     )
     .optional(),
@@ -312,7 +319,8 @@ export const UpdateClientResponse = zod.object({
         mimeType: zod.string(),
         sizeBytes: zod.number(),
         fileDataUrl: zod.string(),
-        uploadedAt: zod.string().optional(),
+        uploadedAt: zod.date().optional(),
+        amount: zod.number().optional(),
       }),
     )
     .optional(),

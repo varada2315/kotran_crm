@@ -11,6 +11,7 @@ import {
   type PurchasedItem,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -106,8 +107,56 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+async function extractCostFromPdf(dataUrl: string): Promise<number | null> {
+  try {
+    // @ts-ignore
+    const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.mjs");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.mjs";
+
+    const loadingTask = pdfjsLib.getDocument(dataUrl);
+    const pdf = await loadingTask.promise;
+    let fullText = "";
+
+    // Parse up to first 3 pages
+    for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(" ");
+      fullText += pageText + "\n";
+    }
+
+    // Heuristics for finding the total amount
+    const patterns = [
+      /(?:grand\s*total|total\s*amount|amount\s*due|total|payable|balance)\s*[:\s]*[^\d\w]*(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{2})?)/gi,
+      /(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{2})?)/gi,
+    ];
+
+    let candidates: number[] = [];
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(fullText)) !== null) {
+        const amount = parseFloat(match[1].replace(/,/g, ""));
+        if (!isNaN(amount) && amount > 0) {
+          candidates.push(amount);
+        }
+      }
+    }
+
+    if (candidates.length > 0) {
+      // In invoices, the largest amount found is often the total
+      return Math.max(...candidates);
+    }
+
+    return null;
+  } catch (error) {
+    console.error("PDF Extraction Error:", error);
+    return null;
+  }
+}
+
 export default function ClientDetail({ id }: { id: number }) {
   const { activeWorkspaceId } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
@@ -168,20 +217,21 @@ export default function ClientDetail({ id }: { id: number }) {
 
   const activityForm = useForm({
     resolver: zodResolver(createActivitySchema),
-    defaultValues: { type: "note", description: "" },
+    defaultValues: { 
+      type: "note" as "call" | "meeting" | "note" | "follow_up" | "task", 
+      description: "", 
+      date: "" 
+    },
   });
 
   const purchasedItems = client?.purchasedItems ?? [];
   const invoices = client?.invoices ?? [];
   const totalRevenue =
     client?.revenueTotal ??
-    purchasedItems.reduce(
-      (sum, item) => sum + (item.totalPrice ?? item.unitPrice * (item.quantity ?? 1)),
-      0,
-    );
+    invoices.reduce((sum, inv) => sum + (inv.amount ?? 0), 0);
 
   const onUpdateSubmit = (data: z.infer<typeof updateClientSchema>) => {
-    updateMutation.mutate({ workspaceId: activeWorkspaceId!, clientId: id, data });
+    updateMutation.mutate({ workspaceId: activeWorkspaceId!, clientId: id, data: data as any });
   };
 
   const onActivitySubmit = (data: z.infer<typeof createActivitySchema>) => {
@@ -240,12 +290,22 @@ export default function ClientDetail({ id }: { id: number }) {
         }
 
         const fileDataUrl = await readFileAsDataUrl(file);
+        let amount = 0;
+
+        if (file.type === "application/pdf") {
+          const detectedAmount = await extractCostFromPdf(fileDataUrl);
+          if (detectedAmount) {
+            amount = detectedAmount;
+          }
+        }
+
         nextInvoices.push({
           fileName: file.name,
           mimeType: file.type || "application/octet-stream",
           sizeBytes: file.size,
           fileDataUrl,
           uploadedAt: new Date().toISOString(),
+          amount,
         });
       }
 
@@ -257,11 +317,18 @@ export default function ClientDetail({ id }: { id: number }) {
     }
   };
 
+  const handleUpdateInvoiceAmount = (index: number, amount: number) => {
+    const nextInvoices = [...invoices];
+    nextInvoices[index] = { ...nextInvoices[index], amount };
+    saveInvoices(nextInvoices);
+  };
+
   const handleRemoveInvoice = (index: number) => {
     saveInvoices(invoices.filter((_, invoiceIndex) => invoiceIndex !== index));
   };
 
   const handleDeleteClient = () => {
+    if (!client) return;
     if (!window.confirm(`Delete client "${client.clientName}"?`)) {
       return;
     }
@@ -296,20 +363,22 @@ export default function ClientDetail({ id }: { id: number }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="rounded-2xl border-border/50 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-display font-bold mt-1">{formatCurrency(totalRevenue)}</p>
+      <div className={`grid grid-cols-1 ${user?.role === "admin" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
+        {user?.role === "admin" && (
+          <Card className="rounded-2xl border-border/50 shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-2xl font-display font-bold mt-1">{formatCurrency(totalRevenue)}</p>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <IndianRupee className="w-5 h-5" />
+                </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                <IndianRupee className="w-5 h-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
         <Card className="rounded-2xl border-border/50 shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -401,7 +470,7 @@ export default function ClientDetail({ id }: { id: number }) {
                     </SelectTrigger>
                     <SelectContent>
                       {Object.keys(STAGE_COLORS).map((stage) => (
-                        <SelectItem key={stage} value={stage} className="capitalize">
+                        <SelectItem key={stage} value={stage as any} className="capitalize">
                           {stage}
                         </SelectItem>
                       ))}
@@ -479,7 +548,7 @@ export default function ClientDetail({ id }: { id: number }) {
           <Card className="rounded-2xl shadow-sm border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/50">
               <CardTitle className="text-lg">Purchased Items</CardTitle>
-              <div className="text-sm font-medium text-emerald-600">{formatCurrency(totalRevenue)}</div>
+              {user?.role === "admin" && <div className="text-sm font-medium text-emerald-600">{formatCurrency(totalRevenue)}</div>}
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -520,7 +589,9 @@ export default function ClientDetail({ id }: { id: number }) {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm text-muted-foreground">
-                  Add every product or service the client purchased. Revenue updates automatically.
+                  {user?.role === "admin" 
+                    ? "Track products or services for reference. Revenue is now calculated from invoice costs."
+                    : "Track products or services associated with this client."}
                 </div>
                 <Button onClick={handleAddItem} disabled={updateMutation.isPending} className="rounded-lg">
                   {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -546,7 +617,7 @@ export default function ClientDetail({ id }: { id: number }) {
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="font-semibold">{formatCurrency(totalPrice)}</div>
+                          {user?.role === "admin" && <div className="font-semibold">{formatCurrency(totalPrice)}</div>}
                           <Button variant="ghost" size="icon" className="rounded-lg" onClick={() => handleRemoveItem(index)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -584,7 +655,9 @@ export default function ClientDetail({ id }: { id: number }) {
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               <p className="text-sm text-muted-foreground">
-                Upload invoice PDFs or images for payment proof. Files are stored with the client record.
+                {user?.role === "admin" 
+                  ? "Upload invoices and specify their cost. ONLY these costs contribute to the total revenue."
+                  : "Upload invoices for this client."}
               </p>
               {invoiceError && <p className="text-sm text-destructive">{invoiceError}</p>}
               {!invoices.length ? (
@@ -595,21 +668,36 @@ export default function ClientDetail({ id }: { id: number }) {
                 <div className="space-y-3">
                   {invoices.map((invoice, index) => (
                     <div key={`${invoice.fileName}-${index}`} className="flex items-center justify-between gap-4 rounded-xl border border-border/60 p-4">
-                      <div>
-                        <p className="font-medium">{invoice.fileName}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{invoice.fileName}</p>
+                        <p className="text-xs text-muted-foreground">
                           {formatFileSize(invoice.sizeBytes)}{invoice.uploadedAt ? ` - ${format(new Date(invoice.uploadedAt), "MMM d, yyyy")}` : ""}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button asChild variant="outline" size="sm" className="rounded-lg">
-                          <a href={invoice.fileDataUrl} download={invoice.fileName}>
-                            View
-                          </a>
-                        </Button>
-                        <Button variant="ghost" size="icon" className="rounded-lg" onClick={() => handleRemoveInvoice(index)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div className="flex items-center gap-3">
+                        {user?.role === "admin" && (
+                          <div className="flex flex-col items-end gap-1">
+                            <Label className="text-[10px] text-muted-foreground uppercase">Amount (₹)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0.00"
+                              className="h-8 w-24 text-right pr-2"
+                              value={invoice.amount ?? 0}
+                              onChange={(e) => handleUpdateInvoiceAmount(index, Number(e.target.value || 0))}
+                            />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Button asChild variant="outline" size="sm" className="h-8 rounded-lg">
+                            <a href={invoice.fileDataUrl} download={invoice.fileName}>
+                              View
+                            </a>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleRemoveInvoice(index)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}

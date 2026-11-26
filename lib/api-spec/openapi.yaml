@@ -141,9 +141,16 @@ paths:
             type: string
         - name: tab
           in: query
+          required: false
           schema:
             type: string
             enum: [all, uncontacted, followups]
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month, year]
       responses:
         "200":
           description: List of clients
@@ -520,6 +527,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/InvoiceAttachment"
+        createdAt:
+          type: string
+          format: date-time
+        revenueTotal:
+          type: number
       required: [clientName]
 
     UpdateClientRequest:
@@ -649,6 +661,8 @@ components:
         uploadedAt:
           type: string
           format: date-time
+        amount:
+          type: number
       required: [fileName, mimeType, sizeBytes, fileDataUrl]
 
     OpportunityCount:
